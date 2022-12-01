@@ -1,0 +1,113 @@
+# Advent of Code 2022
+
+## Day 1
+
+### [Calorie Counting](https://adventofcode.com/2022/day/1)
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+    |> String.split("\n")
+  end
+
+  def string(value) do
+    value |> String.split("\n")
+  end
+end
+```
+
+### Input
+
+```elixir
+input = Load.file("/data/day1.txt")
+```
+
+### Part 1
+
+Find the Elf carrying the most Calories. How many total Calories is that Elf carrying?
+
+```elixir
+defmodule Part1 do
+  def count([], %{max_elf: max_elf, max_total: max_total}) do
+    %{max_elf: max_elf, max_total: max_total}
+  end
+
+  def count(
+        ["" | rest],
+        %{
+          max_total: max_total,
+          current_elf: current_elf,
+          current_total: current_total
+        } = data
+      ) do
+    if current_total > max_total do
+      count(rest, %{
+        data
+        | max_total: current_total,
+          max_elf: current_elf,
+          current_elf: current_elf + 1,
+          current_total: 0
+      })
+    else
+      count(rest, %{
+        data
+        | current_elf: current_elf + 1,
+          current_total: 0
+      })
+    end
+  end
+
+  def count([calories | rest], %{current_total: current_total} = data) do
+    count(rest, %{data | current_total: current_total + String.to_integer(calories)})
+  end
+
+  def count(list) do
+    count(list, %{
+      max_total: 0,
+      max_elf: 0,
+      current_elf: 1,
+      current_total: 0
+    })
+  end
+end
+
+Part1.count(input).max_total
+```
+
+### Part 2
+
+Find the top three Elves carrying the most Calories. How many Calories are those Elves carrying in total?
+
+```elixir
+defmodule Part2 do
+  def summarize([], calorie_totals) do
+    calorie_totals
+  end
+
+  def summarize(["" | rest], calorie_totals) do
+    summarize(rest, [0 | calorie_totals])
+  end
+
+  def summarize([calories | rest], [current_total | rest_totals]) do
+    summarize(
+      rest,
+      [current_total + String.to_integer(calories) | rest_totals]
+    )
+  end
+
+  def summarize(input) do
+    summarize(input, [0])
+  end
+end
+
+input
+|> Part2.summarize()
+|> Enum.sort(&(&1 > &2))
+|> Enum.slice(0..2)
+|> Enum.sum()
+```
