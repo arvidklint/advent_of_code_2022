@@ -1,12 +1,10 @@
-# Advent of Code 2022
+# Advent of Code 2022 - Day 1
 
-## Day 1
+## Day 1: Calorie Counting
 
-### [Calorie Counting](https://adventofcode.com/2022/day/1)
+[Description](https://adventofcode.com/2022/day/1)
 
-<!-- livebook:{"break_markdown":true} -->
-
-### Utils
+## Utils
 
 ```elixir
 defmodule Load do
@@ -21,13 +19,13 @@ defmodule Load do
 end
 ```
 
-### Input
+## Input
 
 ```elixir
-input = Load.file("/data/day1.txt")
+input = Load.file("/data/day01.txt")
 ```
 
-### Part 1
+## Part 1
 
 Find the Elf carrying the most Calories. How many total Calories is that Elf carrying?
 
@@ -49,7 +47,7 @@ input
 |> Enum.max()
 ```
 
-### Part 2
+## Part 2
 
 Find the top three Elves carrying the most Calories. How many Calories are those Elves carrying in total?
 

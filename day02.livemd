@@ -1,0 +1,94 @@
+# Advent of Code 2022 - Day 2
+
+## Day 2: Rock Paper Scissors
+
+[Description](https://adventofcode.com/2022/day/2)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+    |> String.split("\n", trim: true)
+  end
+
+  def string(value) do
+    value |> String.split("\n", trim: true)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day02.txt")
+```
+
+## Part 1
+
+What would your total score be if everything goes exactly according to your strategy guide?
+
+```elixir
+values = %{
+  "A" => 1,
+  "B" => 2,
+  "C" => 3,
+  "X" => 1,
+  "Y" => 2,
+  "Z" => 3
+}
+
+input
+|> Enum.map(&String.split/1)
+|> Enum.map(fn round ->
+  [them, me] = round
+  my_value = Map.get(values, me)
+  their_value = Map.get(values, them)
+
+  outcome =
+    cond do
+      their_value == my_value -> 3
+      [them, me] == ["A", "Y"] -> 6
+      [them, me] == ["B", "Z"] -> 6
+      [them, me] == ["C", "X"] -> 6
+      true -> 0
+    end
+
+  my_value + outcome
+end)
+|> Enum.sum()
+```
+
+## Part 2
+
+Following the Elf's instructions for the second column, what would your total score be if everything goes exactly according to your strategy guide?
+
+```elixir
+values = %{
+  "A" => 1,
+  "B" => 2,
+  "C" => 3,
+  # Score when I should lose
+  "A_X" => 3,
+  "B_X" => 1,
+  "C_X" => 2,
+  # Score when I should win
+  "A_Z" => 2,
+  "B_Z" => 3,
+  "C_Z" => 1
+}
+
+input
+|> Enum.map(&String.split/1)
+|> Enum.map(fn round ->
+  [them, outcome] = round
+
+  case outcome do
+    "X" -> 0 + Map.get(values, them <> "_X")
+    "Y" -> 3 + Map.get(values, them)
+    "Z" -> 6 + Map.get(values, them <> "_Z")
+  end
+end)
+|> Enum.sum()
+```
