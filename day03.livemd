@@ -1,0 +1,104 @@
+# Advent of Code 2022 - Day 3
+
+## Day 3: Rucksack Reorganization
+
+[Description](https://adventofcode.com/2022/day/{})
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+    |> String.split("\n", trim: true)
+  end
+
+  def string(value) do
+    value |> String.split("\n", trim: true)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day03.txt")
+```
+
+## Part 1
+
+Find the item type that appears in both compartments of each rucksack. What is the sum of the priorities of those item types?
+
+```elixir
+defmodule Part1 do
+  def get_same(splitted_line) do
+    compartment1 = elem(splitted_line, 0) |> String.graphemes()
+    compartment2 = elem(splitted_line, 1) |> String.graphemes()
+
+    compartment1
+    |> Enum.find(fn item ->
+      is_in_compartment(item, compartment2)
+    end)
+  end
+
+  def split_line(line) do
+    length = line |> String.length() |> Integer.floor_div(2)
+    line |> String.split_at(length)
+  end
+
+  def to_value(item) do
+    <<v::utf8>> = item
+
+    if v > 64 and v < 91 do
+      v - 65 + 27
+    else
+      v - 96
+    end
+  end
+
+  defp is_in_compartment(item, compartment) do
+    compartment |> Enum.find(&(&1 === item))
+  end
+end
+
+input
+|> Enum.map(&Part1.split_line/1)
+|> Enum.map(&Part1.get_same/1)
+|> Enum.map(&Part1.to_value/1)
+|> Enum.sum()
+```
+
+## Part 2
+
+Find the item type that corresponds to the badges of each three-Elf group. What is the sum of the priorities of those item types?
+
+```elixir
+defmodule Part2 do
+  def find_common(group) do
+    [bag1 | rest_of_bags] = group
+
+    bag1
+    |> String.graphemes()
+    |> Enum.find(fn item ->
+      find_common(item, rest_of_bags)
+    end)
+  end
+
+  defp find_common(item, [bag | rest_of_bags]) do
+    case bag |> String.graphemes() |> Enum.find(&(&1 === item)) do
+      nil -> false
+      item -> find_common(item, rest_of_bags)
+    end
+  end
+
+  defp find_common(item, []) do
+    item
+  end
+end
+
+input
+|> Enum.chunk_every(3)
+|> Enum.map(&Part2.find_common/1)
+|> Enum.map(&Part1.to_value/1)
+|> Enum.sum()
+```
