@@ -2,7 +2,7 @@
 
 ## Day 3: Rucksack Reorganization
 
-[Description](https://adventofcode.com/2022/day/{})
+[Description](https://adventofcode.com/2022/day/3)
 
 ## Utils
 
