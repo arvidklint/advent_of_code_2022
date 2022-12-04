@@ -1,0 +1,103 @@
+# Advent of Code 2022 - Day 4
+
+## Day 4: Camp Cleanup
+
+[Description](https://adventofcode.com/2022/day/4)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+    |> String.split("\n", trim: true)
+  end
+
+  def string(value) do
+    value |> String.split("\n", trim: true)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day04.txt")
+```
+
+## Part 1
+
+In how many assignment pairs does one range fully contain the other?
+
+```elixir
+defmodule Part1 do
+  def parse_pair([assignment1, assignment2]) do
+    values1 = parse_assignment(assignment1)
+    values2 = parse_assignment(assignment2)
+
+    %{
+      elf1: %{
+        from: Enum.at(values1, 0),
+        to: Enum.at(values1, 1)
+      },
+      elf2: %{
+        from: Enum.at(values2, 0),
+        to: Enum.at(values2, 1)
+      }
+    }
+  end
+
+  def assignments_overlapping?(pair) do
+    %{
+      elf1: %{from: from1, to: to1},
+      elf2: %{from: from2, to: to2}
+    } = pair
+
+    cond do
+      from1 <= from2 and to1 >= to2 -> true
+      from1 >= from2 and to1 <= to2 -> true
+      true -> false
+    end
+  end
+
+  defp parse_assignment(group) do
+    group
+    |> String.split("-")
+    |> Enum.map(&String.to_integer/1)
+  end
+end
+
+input
+|> Enum.map(&String.split(&1, ","))
+|> Enum.map(&Part1.parse_pair/1)
+|> Enum.map(&Part1.assignments_overlapping?/1)
+|> Enum.filter(& &1)
+|> Enum.count()
+```
+
+## Part 2
+
+In how many assignment pairs do the ranges overlap?
+
+```elixir
+defmodule Part2 do
+  def overlappint_at_all?(pair) do
+    %{
+      elf1: %{from: from1, to: to1},
+      elf2: %{from: from2, to: to2}
+    } = pair
+
+    from1..to1
+    |> Enum.any?(fn digit ->
+      from2..to2 |> Enum.member?(digit)
+    end)
+  end
+end
+
+input
+|> Enum.map(&String.split(&1, ","))
+|> Enum.map(&Part1.parse_pair/1)
+|> Enum.map(&Part2.overlappint_at_all?/1)
+|> Enum.filter(& &1)
+|> Enum.count()
+```
