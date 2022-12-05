@@ -1,0 +1,155 @@
+# Advent of Code 2022 - Day 5
+
+## Day 5: Supply Stacks
+
+[Description](https://adventofcode.com/2022/day/5)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day05.txt")
+```
+
+## Part 1
+
+After the rearrangement procedure completes, what crate ends up on top of each stack?
+
+```elixir
+defmodule Part1 do
+  def create_stacks(input) do
+    [stack_indexes | stacks] =
+      input
+      |> String.split("\n")
+      |> Enum.map(fn line ->
+        line
+        |> String.codepoints()
+        |> Enum.chunk_every(4)
+        |> Enum.map(&Enum.join/1)
+        |> Enum.map(&String.trim/1)
+      end)
+      |> Enum.reverse()
+
+    stack_indexes =
+      stack_indexes
+      |> Enum.map(&String.to_integer/1)
+      |> Enum.map(&(&1 - 1))
+
+    stacks =
+      stacks
+      |> Enum.map(fn stack_row ->
+        stack_row
+        |> Enum.map(fn crate ->
+          crate
+          |> String.trim_leading("[")
+          |> String.trim_trailing("]")
+        end)
+      end)
+
+    stack_indexes
+    |> Enum.map(fn index ->
+      stacks
+      |> Enum.map(&Enum.at(&1, index))
+      |> Enum.reject(&(&1 == ""))
+    end)
+    |> Enum.map(&Enum.reverse/1)
+  end
+
+  def create_moves(input) do
+    input
+    |> String.split("\n")
+    |> Enum.map(&String.split/1)
+    |> Enum.reject(&(&1 == []))
+    |> Enum.map(fn row ->
+      %{
+        amount: row |> Enum.at(1) |> String.to_integer(),
+        from: (row |> Enum.at(3) |> String.to_integer()) - 1,
+        to: (row |> Enum.at(5) |> String.to_integer()) - 1
+      }
+    end)
+  end
+
+  def move_crates(stacks, moves) do
+    moves
+    |> Enum.reduce(stacks, fn move, stacks ->
+      0..(move.amount - 1)
+      |> Enum.reduce(stacks, fn _amount_count, stacks ->
+        move_crate(stacks, move)
+      end)
+    end)
+  end
+
+  defp move_crate(stacks, move) do
+    [crate | from_list] = stacks |> Enum.at(move.from)
+    to_list = [crate | stacks |> Enum.at(move.to)]
+
+    stacks
+    |> List.replace_at(move.from, from_list)
+    |> List.replace_at(move.to, to_list)
+  end
+end
+
+[stacks, moves] =
+  input
+  |> String.split("\n\n")
+
+stacks = Part1.create_stacks(stacks)
+
+moves = Part1.create_moves(moves)
+
+stacks
+|> Part1.move_crates(moves)
+|> Enum.map(&Enum.at(&1, 0))
+|> Enum.join()
+```
+
+## Part 2
+
+After the rearrangement procedure completes, what crate ends up on top of each stack?
+
+```elixir
+defmodule Part2 do
+  def move_crates(stacks, moves) do
+    moves
+    |> Enum.reduce(stacks, fn move, stacks ->
+      stacks
+      |> move_stack_of_crates(move)
+    end)
+  end
+
+  defp move_stack_of_crates(stacks, move) do
+    {crates, from_list} =
+      stacks
+      |> Enum.at(move.from)
+      |> Enum.split(move.amount)
+
+    to_list = crates ++ (stacks |> Enum.at(move.to))
+
+    stacks
+    |> List.replace_at(move.from, from_list)
+    |> List.replace_at(move.to, to_list)
+  end
+end
+
+[stacks, moves] =
+  input
+  |> String.split("\n\n")
+
+stacks = Part1.create_stacks(stacks)
+
+moves = Part1.create_moves(moves)
+
+stacks
+|> Part2.move_crates(moves)
+|> Enum.map(&Enum.at(&1, 0))
+|> Enum.join()
+```
