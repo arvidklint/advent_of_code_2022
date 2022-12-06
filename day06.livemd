@@ -1,0 +1,61 @@
+# Advent of Code 2022 - Day 6
+
+## Day 6: Tuning Trouble
+
+[Description](https://adventofcode.com/2022/day/6)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day06.txt")
+```
+
+## Part 1
+
+How many characters need to be processed before the first start-of-packet marker is detected? A start-of-packet marker is 4 unique character in a row.
+
+```elixir
+index =
+  input
+  |> String.to_charlist()
+  |> Enum.chunk_every(4, 1)
+  |> Enum.find_index(fn code ->
+    Enum.uniq(code) == code
+  end)
+
+index + 4
+```
+
+### Result
+
+`1531`
+
+## Part 2
+
+How many characters need to be processed before the first start-of-message marker is detected? A start-of-message marker is 14 unique character in a row.
+
+```elixir
+index =
+  input
+  |> String.to_charlist()
+  |> Enum.chunk_every(14, 1)
+  |> Enum.find_index(fn code ->
+    Enum.uniq(code) == code
+  end)
+
+index + 14
+```
+
+### Result
+
+`2518`
