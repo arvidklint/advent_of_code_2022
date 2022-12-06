@@ -112,6 +112,10 @@ stacks
 |> Enum.join()
 ```
 
+### Result
+
+`VGBBJCRMN`
+
 ## Part 2
 
 After the rearrangement procedure completes, what crate ends up on top of each stack?
@@ -153,3 +157,7 @@ stacks
 |> Enum.map(&Enum.at(&1, 0))
 |> Enum.join()
 ```
+
+### Result
+
+`LBBVJBRMH`

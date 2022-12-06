@@ -47,6 +47,10 @@ input
 |> Enum.max()
 ```
 
+### Result
+
+`68292`
+
 ## Part 2
 
 Find the top three Elves carrying the most Calories. How many Calories are those Elves carrying in total?
@@ -58,3 +62,7 @@ input
 |> Enum.slice(0..2)
 |> Enum.sum()
 ```
+
+### Result
+
+`203203`

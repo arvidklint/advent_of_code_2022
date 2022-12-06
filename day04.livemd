@@ -75,6 +75,10 @@ input
 |> Enum.count()
 ```
 
+### Result
+
+`475`
+
 ## Part 2
 
 In how many assignment pairs do the ranges overlap?
@@ -101,3 +105,7 @@ input
 |> Enum.filter(& &1)
 |> Enum.count()
 ```
+
+### Result
+
+`825`

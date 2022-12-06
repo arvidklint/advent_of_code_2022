@@ -68,6 +68,10 @@ input
 |> Enum.sum()
 ```
 
+### Result
+
+`8176`
+
 ## Part 2
 
 Find the item type that corresponds to the badges of each three-Elf group. What is the sum of the priorities of those item types?
@@ -102,3 +106,7 @@ input
 |> Enum.map(&Part1.to_value/1)
 |> Enum.sum()
 ```
+
+### Result
+
+`2689`
