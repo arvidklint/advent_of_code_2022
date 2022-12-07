@@ -1,0 +1,133 @@
+# Advent of Code 2022 - Day 7
+
+## Day 7: No Space Left On Device
+
+[Description](https://adventofcode.com/2022/day/7)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+    |> String.split("\n")
+  end
+
+  def string(value) do
+    value |> String.split("\n", trim: true)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day07.txt")
+```
+
+## Part 1
+
+Find all of the directories with a total size of at most 100000. What is the sum of the total sizes of those directories?
+
+```elixir
+defmodule Part1 do
+  def count_dir_size(input) do
+    count_dir_size(input, %{"/" => 0}, ["/"])
+  end
+
+  defp count_dir_size([], sizes, _active_dirs) do
+    sizes
+  end
+
+  defp count_dir_size([line | input], sizes, active_dirs) do
+    [command | args] = line |> String.split()
+
+    case command do
+      "$" ->
+        [program | arg] = args
+
+        case program do
+          "cd" ->
+            [dir] = arg
+
+            case dir do
+              "/" ->
+                count_dir_size(input, sizes, ["/"])
+
+              ".." ->
+                count_dir_size(input, sizes, active_dirs |> tl())
+
+              dir ->
+                full_dir = full_dir(hd(active_dirs), dir)
+                count_dir_size(input, sizes, [full_dir | active_dirs])
+            end
+
+          _ ->
+            count_dir_size(input, sizes, active_dirs)
+        end
+
+      "dir" ->
+        [dir_name] = args
+
+        count_dir_size(
+          input,
+          sizes |> Map.put(full_dir(hd(active_dirs), dir_name), 0),
+          active_dirs
+        )
+
+      filesize_string ->
+        filesize = filesize_string |> String.to_integer()
+
+        sizes =
+          active_dirs
+          |> Enum.reduce(sizes, fn dir_name, sizes ->
+            %{sizes | dir_name => sizes[dir_name] + filesize}
+          end)
+
+        count_dir_size(input, sizes, active_dirs)
+    end
+  end
+
+  defp full_dir(active_dir, dir) do
+    "#{active_dir}/#{dir}" |> String.trim_leading("/")
+  end
+end
+
+input
+|> Part1.count_dir_size()
+|> Enum.reduce(0, fn {_dir_name, value}, result ->
+  if value <= 100_000 do
+    result + value
+  else
+    result
+  end
+end)
+```
+
+### Result
+
+`1206825`
+
+## Part 2
+
+Find the smallest directory that, if deleted, would free up enough space on the filesystem to run the update. What is the total size of that directory?
+
+```elixir
+sizes =
+  input
+  |> Part1.count_dir_size()
+
+total_size = sizes["/"]
+
+unused = 70_000_000 - total_size
+enough = 30_000_000 - unused
+
+sizes
+|> Enum.filter(fn {_name, size} -> size > enough end)
+|> Enum.map(fn {_name, size} -> size end)
+|> Enum.min()
+```
+
+### Result
+
+`9608311`
