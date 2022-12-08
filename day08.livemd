@@ -1,0 +1,182 @@
+# Advent of Code 2022 - Day 8
+
+## Day 8: Treetop Tree House
+
+[Description](https://adventofcode.com/2022/day/8)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+    |> String.split("\n")
+  end
+
+  def string(value) do
+    value |> String.split("\n", trim: true)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day08.txt")
+```
+
+## Part 1
+
+Consider your map; how many trees are visible from outside the grid?
+
+```elixir
+defmodule Part1 do
+  def count(forest) do
+    forest_width = forest |> Enum.at(0) |> Enum.count()
+    forest_height = forest |> Enum.count()
+
+    visible_inner_trees =
+      1..(forest_height - 2)
+      |> Enum.flat_map(fn index_y ->
+        1..(forest_width - 2)
+        |> Enum.map(fn index_x ->
+          tree_height = forest |> Enum.at(index_y) |> Enum.at(index_x) |> String.to_integer()
+
+          check(forest, index_x, index_y, tree_height, :right) or
+            check(forest, index_x, index_y, tree_height, :left) or
+            check(forest, index_x, index_y, tree_height, :up) or
+            check(forest, index_x, index_y, tree_height, :down)
+        end)
+      end)
+      |> Enum.filter(& &1)
+      |> Enum.count()
+
+    visible_inner_trees + forest_width * 2 + forest_height * 2 - 4
+  end
+
+  defp check(forest, index_x, index_y, tree_height, :right) do
+    forest_width = forest |> Enum.at(0) |> Enum.count()
+
+    (index_x + 1)..(forest_width - 1)
+    |> Enum.all?(fn x ->
+      check(forest, x, index_y, tree_height)
+    end)
+  end
+
+  defp check(forest, index_x, index_y, tree_height, :left) do
+    0..(index_x - 1)
+    |> Enum.all?(fn x ->
+      check(forest, x, index_y, tree_height)
+    end)
+  end
+
+  defp check(forest, index_x, index_y, tree_height, :up) do
+    0..(index_y - 1)
+    |> Enum.all?(fn y ->
+      check(forest, index_x, y, tree_height)
+    end)
+  end
+
+  defp check(forest, index_x, index_y, tree_height, :down) do
+    forest_height = forest |> Enum.count()
+
+    (index_y + 1)..(forest_height - 1)
+    |> Enum.all?(fn y ->
+      check(forest, index_x, y, tree_height)
+    end)
+  end
+
+  defp check(forest, x, y, tree_height) do
+    forest |> Enum.at(y) |> Enum.at(x) |> String.to_integer() < tree_height
+  end
+end
+
+input
+|> Enum.map(fn row -> row |> String.split("", trim: true) end)
+|> Part1.count()
+```
+
+### Result
+
+`1829`
+
+## Part 2
+
+Consider each tree on your map. What is the highest scenic score possible for any tree?
+
+```elixir
+defmodule Part2 do
+  def scenic_scores(forest) do
+    forest_width = forest |> Enum.at(0) |> Enum.count()
+    forest_height = forest |> Enum.count()
+
+    1..(forest_height - 2)
+    |> Enum.flat_map(fn index_y ->
+      1..(forest_width - 2)
+      |> Enum.map(fn index_x ->
+        tree_height = forest |> Enum.at(index_y) |> Enum.at(index_x) |> String.to_integer()
+
+        count(forest, index_x, index_y, tree_height, :right) *
+          count(forest, index_x, index_y, tree_height, :left) *
+          count(forest, index_x, index_y, tree_height, :up) *
+          count(forest, index_x, index_y, tree_height, :down)
+      end)
+    end)
+  end
+
+  defp count(forest, index_x, index_y, tree_height, :right) do
+    forest_width = forest |> Enum.at(0) |> Enum.count()
+
+    (index_x + 1)..(forest_width - 1)
+    |> Enum.reduce_while(0, fn x, sum ->
+      height = forest |> Enum.at(index_y) |> Enum.at(x) |> String.to_integer()
+      check(height, tree_height, sum)
+    end)
+  end
+
+  defp count(forest, index_x, index_y, tree_height, :left) do
+    0..(index_x - 1)
+    |> Enum.reverse()
+    |> Enum.reduce_while(0, fn x, sum ->
+      height = forest |> Enum.at(index_y) |> Enum.at(x) |> String.to_integer()
+      check(height, tree_height, sum)
+    end)
+  end
+
+  defp count(forest, index_x, index_y, tree_height, :up) do
+    0..(index_y - 1)
+    |> Enum.reverse()
+    |> Enum.reduce_while(0, fn y, sum ->
+      height = forest |> Enum.at(y) |> Enum.at(index_x) |> String.to_integer()
+      check(height, tree_height, sum)
+    end)
+  end
+
+  defp count(forest, index_x, index_y, tree_height, :down) do
+    forest_height = forest |> Enum.count()
+
+    (index_y + 1)..(forest_height - 1)
+    |> Enum.reduce_while(0, fn y, sum ->
+      height = forest |> Enum.at(y) |> Enum.at(index_x) |> String.to_integer()
+      check(height, tree_height, sum)
+    end)
+  end
+
+  defp check(height, tree_height, sum) do
+    cond do
+      height == tree_height -> {:halt, sum + 1}
+      height < tree_height -> {:cont, sum + 1}
+      true -> {:halt, sum + 1}
+    end
+  end
+end
+
+input
+|> Enum.map(fn row -> row |> String.split("", trim: true) end)
+|> Part2.scenic_scores()
+|> Enum.max()
+```
+
+### Result
+
+`291840`
