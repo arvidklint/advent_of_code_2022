@@ -2,7 +2,7 @@
 
 ## Day 9: Rope Bridge
 
-[Description](https://adventofcode.com/2022/day/{})
+[Description](https://adventofcode.com/2022/day/9)
 
 ## Utils
 
