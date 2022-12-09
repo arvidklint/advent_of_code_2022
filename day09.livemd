@@ -1,0 +1,173 @@
+# Advent of Code 2022 - Day 9
+
+## Day 9: Rope Bridge
+
+[Description](https://adventofcode.com/2022/day/{})
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+    |> String.split("\n", trim: true)
+  end
+
+  def string(value) do
+    value |> String.split("\n", trim: true)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day09.txt")
+```
+
+## Part 1
+
+Simulate your complete hypothetical series of motions. How many positions does the tail of the rope visit at least once?
+
+```elixir
+defmodule Part1 do
+  def head_positions(input) do
+    input
+    |> move_head([{0, 0}])
+    |> Enum.reverse()
+  end
+
+  def move_head([], head_positions) do
+    head_positions
+  end
+
+  def move_head([instruction | input], head_positions) do
+    [dir, steps] = instruction |> String.split(" ", trim: true)
+
+    head = hd(head_positions)
+
+    direction =
+      case dir do
+        "R" -> {1, 0}
+        "L" -> {-1, 0}
+        "U" -> {0, 1}
+        "D" -> {0, -1}
+      end
+
+    steps = steps |> String.to_integer()
+
+    new_head_positions =
+      1..steps
+      |> Enum.map(fn step ->
+        {elem(head, 0) + step * elem(direction, 0), elem(head, 1) + step * elem(direction, 1)}
+      end)
+      |> Enum.reverse()
+
+    move_head(input, new_head_positions ++ head_positions)
+  end
+
+  def follow([], tail_positions) do
+    tail_positions
+  end
+
+  def follow([head_position | head_positions], [tail_position | _] = tail_positions) do
+    vd = vertical_distance(head_position, tail_position)
+    hd = horizontal_distance(head_position, tail_position)
+
+    if vd > 1 or hd > 1 do
+      offset = {
+        horizontal_offset(head_position, tail_position),
+        vertical_offset(head_position, tail_position)
+      }
+
+      normalized_offset = normalize(offset)
+
+      new_tail_position = {
+        elem(tail_position, 0) + elem(normalized_offset, 0),
+        elem(tail_position, 1) + elem(normalized_offset, 1)
+      }
+
+      follow(head_positions, [new_tail_position | tail_positions])
+    else
+      follow(head_positions, tail_positions)
+    end
+  end
+
+  defp vertical_offset(pos1, pos2) do
+    elem(pos1, 1) - elem(pos2, 1)
+  end
+
+  defp vertical_distance(pos1, pos2) do
+    abs(vertical_offset(pos1, pos2))
+  end
+
+  defp horizontal_offset(pos1, pos2) do
+    elem(pos1, 0) - elem(pos2, 0)
+  end
+
+  defp horizontal_distance(pos1, pos2) do
+    abs(horizontal_offset(pos1, pos2))
+  end
+
+  defp normalize(pos) do
+    x =
+      case elem(pos, 0) do
+        0 -> 0
+        n -> (n / abs(n)) |> round()
+      end
+
+    y =
+      case elem(pos, 1) do
+        0 -> 0
+        n -> (n / abs(n)) |> round()
+      end
+
+    {x, y}
+  end
+end
+
+input
+|> Part1.head_positions()
+|> Part1.follow([{0, 0}])
+|> Enum.uniq()
+|> Enum.count()
+```
+
+### Result
+
+`5883`
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Part 2
+
+Simulate your complete series of motions on a larger rope with ten knots. How many positions does the tail of the rope visit at least once?
+
+```elixir
+# Derp
+input
+|> Part1.head_positions()
+|> Part1.follow([{0, 0}])
+|> Enum.reverse()
+|> Part1.follow([{0, 0}])
+|> Enum.reverse()
+|> Part1.follow([{0, 0}])
+|> Enum.reverse()
+|> Part1.follow([{0, 0}])
+|> Enum.reverse()
+|> Part1.follow([{0, 0}])
+|> Enum.reverse()
+|> Part1.follow([{0, 0}])
+|> Enum.reverse()
+|> Part1.follow([{0, 0}])
+|> Enum.reverse()
+|> Part1.follow([{0, 0}])
+|> Enum.reverse()
+|> Part1.follow([{0, 0}])
+|> Enum.uniq()
+|> Enum.count()
+```
+
+### Result
+
+`2367`
