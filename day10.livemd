@@ -1,0 +1,114 @@
+# Advent of Code 2022 - Day 10
+
+## Day 10: Cathode-Ray Tube
+
+[Description](https://adventofcode.com/2022/day/10)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+    |> String.split("\n", trim: true)
+  end
+
+  def string(value) do
+    value |> String.split("\n", trim: true)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day10.txt")
+```
+
+## Part 1
+
+Find the signal strength during the 20th, 60th, 100th, 140th, 180th, and 220th cycles. What is the sum of these six signal strengths?
+
+```elixir
+defmodule Part1 do
+  def run([], signal) do
+    signal
+  end
+
+  def run([instruction | input], [x | _] = signal) do
+    instruction = instruction |> String.split(" ", trim: true)
+
+    case instruction do
+      [_command | [value]] ->
+        value = value |> String.to_integer()
+        signal = [x + value, x] ++ signal
+        run(input, signal)
+
+      _ ->
+        run(input, [x | signal])
+    end
+  end
+
+  def signal_strength(signal) do
+    Enum.at(signal, 19) * 20 +
+      Enum.at(signal, 59) * 60 +
+      Enum.at(signal, 99) * 100 +
+      Enum.at(signal, 139) * 140 +
+      Enum.at(signal, 179) * 180 +
+      Enum.at(signal, 219) * 220
+  end
+end
+
+input
+|> Part1.run([1])
+|> Enum.reverse()
+|> Part1.signal_strength()
+```
+
+### Result
+
+`14520`
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Part 2
+
+Render the image given by your program. What eight capital letters appear on your CRT?
+
+```elixir
+defmodule Part2 do
+  def render([], pixels) do
+    pixels
+  end
+
+  def render([x | signal], pixels) do
+    pixel_x = pixels |> Enum.count() |> rem(40)
+
+    if pixel_x <= x + 1 and pixel_x >= x - 1 do
+      render(signal, ["#" | pixels])
+    else
+      render(signal, ["." | pixels])
+    end
+  end
+end
+
+input
+|> Part1.run([1])
+|> Enum.reverse()
+|> Part2.render([])
+|> Enum.reverse()
+|> Enum.chunk_every(40)
+|> Enum.map(&Enum.join/1)
+|> Enum.each(&IO.puts/1)
+```
+
+### Result
+
+```
+###..####.###...##..####.####...##.###..
+#..#....#.#..#.#..#....#.#.......#.#..#.
+#..#...#..###..#......#..###.....#.###..
+###...#...#..#.#.##..#...#.......#.#..#.
+#....#....#..#.#..#.#....#....#..#.#..#.
+#....####.###...###.####.####..##..###..
+```
