@@ -1,0 +1,297 @@
+# Advent of Code 2022 - Day 11
+
+## Day 11: Monkey in the Middle
+
+[Description](https://adventofcode.com/2022/day/11)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path)
+    |> String.split("\n", trim: true)
+  end
+
+  def string(value) do
+    value |> String.split("\n", trim: true)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day11.txt")
+```
+
+## Part 1
+
+Figure out which monkeys to chase by counting how many items they inspect over 20 rounds. What is the level of monkey business after 20 rounds of stuff-slinging simian shenanigans?
+
+```elixir
+defmodule Part1 do
+  def parse_monkeys(input) do
+    input = input |> Enum.chunk_every(6)
+    monkeys = input |> Enum.map(&parse_monkey/1)
+
+    monkeys
+  end
+
+  defp parse_monkey(input) do
+    [line_1, line_2, line_3, line_4, line_5, line_6] = input
+
+    [_ | [monkey_number]] =
+      line_1
+      |> String.trim_trailing(":")
+      |> String.split(" ")
+
+    monkey_number = monkey_number |> String.to_integer()
+
+    [_, _ | items] =
+      line_2
+      |> String.split(" ", trim: true)
+
+    items =
+      items
+      |> Enum.map(fn item ->
+        item |> String.trim_trailing(",") |> String.to_integer()
+      end)
+
+    [_, _, _, left, operator, right] =
+      line_3
+      |> String.split(" ", trim: true)
+
+    [_, _, _, divisible_by] =
+      line_4
+      |> String.split(" ", trim: true)
+
+    divisible_by = divisible_by |> String.to_integer()
+
+    [_, _, _, _, _, throw_true] =
+      line_5
+      |> String.split(" ", trim: true)
+
+    throw_true = throw_true |> String.to_integer()
+
+    [_, _, _, _, _, throw_false] =
+      line_6
+      |> String.split(" ", trim: true)
+
+    throw_false = throw_false |> String.to_integer()
+
+    %{
+      number: monkey_number,
+      items: items,
+      operation: %{
+        left: left,
+        operator: operator,
+        right: right
+      },
+      test: %{
+        divisible_by: divisible_by,
+        true: throw_true,
+        false: throw_false
+      },
+      inspected: 0
+    }
+  end
+
+  def run(monkeys, rounds) do
+    1..rounds
+    |> Enum.reduce(monkeys, fn _round, monkeys ->
+      monkeys
+      |> inspect_items()
+    end)
+  end
+
+  defp inspect_items(monkeys) do
+    0..(Enum.count(monkeys) - 1)
+    |> Enum.reduce(monkeys, fn monkey_index, monkeys ->
+      monkeys
+      |> calculate_worry_levels(monkey_index)
+      |> throw_item(monkey_index)
+    end)
+  end
+
+  defp calculate_worry_levels(monkeys, monkey_index) do
+    monkey = monkeys |> Enum.at(monkey_index)
+    operation = monkey.operation
+
+    items =
+      monkey.items
+      |> Enum.map(fn item ->
+        left =
+          case operation.left do
+            "old" -> item
+            n -> n |> String.to_integer()
+          end
+
+        right =
+          case operation.right do
+            "old" -> item
+            n -> n |> String.to_integer()
+          end
+
+        level =
+          case operation.operator do
+            "-" -> left - right
+            "+" -> left + right
+            "/" -> left / right
+            "*" -> left * right
+          end
+
+        level |> Integer.floor_div(3)
+      end)
+
+    monkeys
+    |> Enum.map(fn m ->
+      case m.number == monkey.number do
+        true ->
+          %{
+            m
+            | items: items,
+              inspected: m.inspected + Enum.count(items)
+          }
+
+        false ->
+          m
+      end
+    end)
+  end
+
+  def throw_item(monkeys, monkey_index) do
+    monkey = Enum.at(monkeys, monkey_index)
+
+    monkey.items
+    |> Enum.reduce(monkeys, fn item, monkeys ->
+      throw_to =
+        case rem(item, monkey.test.divisible_by) == 0 do
+          true -> monkey.test.true
+          false -> monkey.test.false
+        end
+
+      monkeys
+      |> Enum.map(fn m ->
+        cond do
+          m.number == monkey.number ->
+            {_, new_items} = List.pop_at(m.items, 0)
+            %{m | items: new_items}
+
+          m.number == throw_to ->
+            %{m | items: m.items ++ [item]}
+
+          true ->
+            m
+        end
+      end)
+    end)
+  end
+end
+
+input
+|> Part1.parse_monkeys()
+|> Part1.run(20)
+|> Enum.map(& &1.inspected)
+|> Enum.sort(:desc)
+|> Enum.slice(0..1)
+|> Enum.product()
+```
+
+### Result
+
+`78678`
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Part 2
+
+Worry levels are no longer divided by three after each item is inspected; you'll need to find another way to keep your worry levels manageable. Starting again from the initial state in your puzzle input, what is the level of monkey business after 10000 rounds?
+
+#### Notes
+
+Exactly the same as part 1 but instead of dividing by 3 we take the worry level modulo the product of all divisible_by values (line 41).
+
+```elixir
+defmodule Part2 do
+  def run(monkeys, rounds) do
+    1..rounds
+    |> Enum.reduce(monkeys, fn _round, monkeys ->
+      monkeys
+      |> inspect_items()
+    end)
+  end
+
+  defp inspect_items(monkeys) do
+    0..(Enum.count(monkeys) - 1)
+    |> Enum.reduce(monkeys, fn monkey_index, monkeys ->
+      monkeys
+      |> calculate_worry_levels(monkey_index)
+      |> Part1.throw_item(monkey_index)
+    end)
+  end
+
+  defp calculate_worry_levels(monkeys, monkey_index) do
+    monkey = monkeys |> Enum.at(monkey_index)
+    operation = monkey.operation
+
+    items =
+      monkey.items
+      |> Enum.map(fn item ->
+        left =
+          case operation.left do
+            "old" -> item
+            n -> n |> String.to_integer()
+          end
+
+        right =
+          case operation.right do
+            "old" -> item
+            n -> n |> String.to_integer()
+          end
+
+        level =
+          case operation.operator do
+            "-" -> left - right
+            "+" -> left + right
+            "/" -> left / right
+            "*" -> left * right
+          end
+
+        divisible_by_product =
+          monkeys
+          |> Enum.map(& &1.test.divisible_by)
+          |> Enum.product()
+
+        level |> rem(divisible_by_product)
+      end)
+
+    monkeys
+    |> Enum.map(fn m ->
+      case m.number == monkey.number do
+        true ->
+          %{
+            m
+            | items: items,
+              inspected: m.inspected + Enum.count(items)
+          }
+
+        false ->
+          m
+      end
+    end)
+  end
+end
+
+input
+|> Part1.parse_monkeys()
+|> Part2.run(10000)
+|> Enum.map(& &1.inspected)
+|> Enum.sort(:desc)
+|> Enum.slice(0..1)
+|> Enum.product()
+```
+
+### Result
+
+`15333249714`
