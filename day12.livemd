@@ -1,0 +1,209 @@
+# Advent of Code 2022 - Day 12 - fork
+
+## Day 12: Monkey in the Middle
+
+[Description](https://adventofcode.com/2022/day/11)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path) |> parse()
+  end
+
+  def string(value) do
+    value |> parse()
+  end
+
+  defp parse(value) do
+    value
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn line -> line |> String.to_charlist() end)
+
+    # |> Enum.map(fn line -> line |> String.split("", trim: true) end)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day12.txt")
+
+# input =
+#   Load.string("""
+#   Sabqponm
+#   abcryxxl
+#   accszExk
+#   acctuvwj
+#   abdefghi
+#   """)
+```
+
+## Part 1
+
+What is the fewest steps required to move from your current position to the location that should get the best signal?
+
+```elixir
+defmodule Part1 do
+  def get_point(grid, value) do
+    0..(length(grid) - 1)
+    |> Enum.find_value(fn y ->
+      row = grid |> Enum.at(y)
+
+      x =
+        row
+        |> Enum.find_index(fn cell ->
+          cell == value
+        end)
+
+      if x, do: {x, y}, else: nil
+    end)
+  end
+
+  def a_star(grid, start_point, end_point) do
+    start_height = get_height(grid, start_point)
+    a_star(grid, [Tuple.append(start_point, start_height)], [start_point], end_point, nil)
+  end
+
+  defp a_star(grid, path, visited_points, end_point, shortest_path) do
+    [current_point | _] = path
+
+    # IO.inspect(current_point)
+    neighbors = grid |> neighbors(current_point)
+
+    # Add current_point to visited
+    visited_points = [current_point | visited_points]
+
+    # Remove all visited neighbors
+    valid_next_points =
+      neighbors
+      |> Enum.reject(fn neighbor ->
+        visited_points
+        |> Enum.find(fn visited ->
+          # IO.inspect(neighbor)
+          # IO.inspect(visited)
+          # IO.inspect(elem(neighbor, 0) == elem(visited, 0) and elem(neighbor, 1) == elem(visited, 1))
+          elem(neighbor, 0) == elem(visited, 0) and elem(neighbor, 1) == elem(visited, 1)
+        end)
+      end)
+
+    IO.inspect(visited_points)
+
+    # visited_points = valid_next_points ++ visited_points
+
+    if length(valid_next_points) == 0 do
+      nil
+    else
+      valid_next_points
+      |> sort_by_weight(end_point)
+      |> IO.inspect()
+      |> Enum.find_value(fn next_point ->
+        if elem(next_point, 0) == elem(end_point, 0) and
+             elem(next_point, 1) == elem(end_point, 1) do
+          [next_point | path] |> IO.inspect()
+        else
+          a_star(grid, [next_point | path], visited_points, end_point, shortest_path)
+          # cond do
+          #   shortest_path == nil -> path
+          #   path == nil -> shortest_path
+          #   length(path) < length(shortest_path) -> path
+          #   true -> shortest_path
+          # end
+        end
+      end)
+    end
+  end
+
+  defp neighbors(grid, point) do
+    x = elem(point, 0)
+    y = elem(point, 1)
+    current_height = grid |> get_height(point)
+
+    up = grid |> get_neighbor({x, y - 1})
+    down = grid |> get_neighbor({x, y + 1})
+    left = grid |> get_neighbor({x - 1, y})
+    right = grid |> get_neighbor({x + 1, y})
+
+    [up, down, left, right]
+    |> Enum.reject(&(&1 == nil))
+    |> Enum.reject(fn neighbor ->
+      abs(current_height - elem(neighbor, 2)) > 1
+    end)
+  end
+
+  defp get_neighbor(grid, point) do
+    x = elem(point, 0)
+    y = elem(point, 1)
+
+    if x < 0 or
+         x >= length(grid |> Enum.at(0)) or
+         y < 0 or
+         y >= length(grid) do
+      nil
+    else
+      height = grid |> get_height(point)
+      {x, y, height}
+    end
+  end
+
+  defp get_height(grid, point) do
+    x = elem(point, 0)
+    y = elem(point, 1)
+    height = grid |> Enum.at(y) |> Enum.at(x)
+
+    case height do
+      83 -> 97
+      69 -> 122
+      height -> height
+    end
+  end
+
+  defp sort_by_weight(points, end_point) do
+    points
+    |> Enum.sort(fn a, b ->
+      dist_a = distance(a, end_point)
+      dist_b = distance(b, end_point)
+
+      dist_a > dist_b
+    end)
+  end
+
+  defp distance(point_a, point_b) do
+    abs(elem(point_a, 0) - elem(point_b, 0)) + abs(elem(point_a, 1) - elem(point_b, 1))
+  end
+end
+
+# S
+start_point = input |> Part1.get_point(83)
+# E
+end_point = input |> Part1.get_point(69)
+
+input
+|> Part1.a_star(end_point, start_point)
+|> Enum.count()
+|> Kernel.-(1)
+```
+
+### Result
+
+`78678`
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Part 2
+
+Worry levels are no longer divided by three after each item is inspected; you'll need to find another way to keep your worry levels manageable. Starting again from the initial state in your puzzle input, what is the level of monkey business after 10000 rounds?
+
+#### Notes
+
+Exactly the same as part 1 but instead of dividing by 3 we take the worry level modulo the product of all divisible_by values (line 41).
+
+```elixir
+?z
+```
+
+### Result
+
+`15333249714`
