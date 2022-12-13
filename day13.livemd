@@ -1,0 +1,141 @@
+# Advent of Code 2022 - Day 13
+
+```elixir
+Mix.install([:poison])
+```
+
+## Day 13: Distress Signal
+
+[Description](https://adventofcode.com/2022/day/13)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path) |> parse()
+  end
+
+  def string(value) do
+    value |> parse()
+  end
+
+  defp parse(value) do
+    value
+    |> String.split("\n", trim: true)
+    |> Enum.map(&Poison.decode!/1)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day13.txt")
+```
+
+## Part 1
+
+Determine which pairs of packets are already in the right order. What is the sum of the indices of those pairs?
+
+```elixir
+defmodule Part1 do
+  def check(left, right)
+      when is_list(left) and
+             is_list(right) do
+    cond do
+      length(left) == 0 and length(right) == 0 ->
+        :continue
+
+      length(left) == 0 ->
+        :right
+
+      length(right) == 0 ->
+        :wrong
+
+      true ->
+        [l | left] = left
+        [r | right] = right
+
+        with :continue <- check(l, r) do
+          check(left, right)
+        else
+          result -> result
+        end
+    end
+  end
+
+  # convert right side to list
+  def check(left, right)
+      when is_list(left) and
+             is_integer(right) do
+    check(left, [right])
+  end
+
+  # convert left side to list
+  def check(left, right)
+      when is_integer(left) and
+             is_list(right) do
+    check([left], right)
+  end
+
+  # compare integers
+  def check(left, right)
+      when is_integer(left) and
+             is_integer(right) do
+    cond do
+      left == right -> :continue
+      left < right -> :right
+      left > right -> :wrong
+    end
+  end
+end
+
+input
+|> Enum.chunk_every(2)
+|> Enum.map(fn pair ->
+  [left, right] = pair
+  Part1.check(left, right)
+end)
+|> Enum.with_index()
+|> Enum.reduce(0, fn {value, index}, sum ->
+  case value do
+    :right -> sum + index + 1
+    :wrong -> sum
+  end
+end)
+```
+
+### Result
+
+`5938`
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Part 2
+
+Organize all of the packets into the correct order. What is the decoder key for the distress signal?
+
+```elixir
+input
+|> List.insert_at(0, [[2]])
+|> List.insert_at(0, [[6]])
+|> Enum.sort(fn a, b ->
+  case Part1.check(a, b) do
+    :right -> true
+    :wrong -> false
+  end
+end)
+|> Enum.with_index()
+|> Enum.reduce(1, fn {code, index}, sum ->
+  case code do
+    [[2]] -> sum * (index + 1)
+    [[6]] -> sum * (index + 1)
+    _ -> sum
+  end
+end)
+```
+
+### Result
+
+`29025`
