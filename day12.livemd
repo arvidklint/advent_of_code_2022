@@ -1,6 +1,6 @@
 # Advent of Code 2022 - Day 12
 
-## Day 11: Hill Climbing Algorithm
+## Day 12: Hill Climbing Algorithm
 
 [Description](https://adventofcode.com/2022/day/12)
 
