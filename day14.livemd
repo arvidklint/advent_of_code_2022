@@ -1,0 +1,193 @@
+# Advent of Code 2022 - Day 14
+
+## Day 14: Regolith Reservoir
+
+[Description](https://adventofcode.com/2022/day/14)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path) |> parse()
+  end
+
+  def string(value) do
+    value |> parse()
+  end
+
+  defp parse(value) do
+    value
+    |> String.split("\n", trim: true)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day14.txt")
+```
+
+## Part 1
+
+Using your scan, simulate the falling sand. How many units of sand come to rest before sand starts flowing into the abyss below?
+
+```elixir
+defmodule Part1 do
+  def parse_line(line) do
+    line
+    |> String.split("->", trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.map(fn point_string ->
+      point_string
+      |> String.split(",")
+      |> Enum.map(&String.to_integer/1)
+      |> List.to_tuple()
+    end)
+  end
+
+  def create_rock_formation(point_lines) do
+    point_lines
+    |> Enum.map(fn line -> line |> Enum.chunk_every(2, 1, :discard) end)
+    |> Enum.reduce(%{}, fn line, rocks ->
+      line
+      |> Enum.reduce(rocks, fn [{from_x, from_y}, {to_x, to_y}], rocks ->
+        to_y..from_y
+        |> Enum.reduce(rocks, fn y, rocks ->
+          to_x..from_x
+          |> Enum.reduce(rocks, fn x, rocks ->
+            Map.put(rocks, {x, y}, true)
+          end)
+        end)
+      end)
+    end)
+  end
+
+  def simulate(rocks, sand, max_y, sand_start) do
+    with {:stable, sand} <- simulate_sand(rocks, sand, max_y, sand_start) do
+      simulate(rocks, sand, max_y, sand_start)
+    else
+      _ -> sand
+    end
+  end
+
+  def simulate_sand(rocks, sand, max_y, {x, y} = position) do
+    cond do
+      y > max_y ->
+        {:spilling_over, sand}
+
+      vacant?(rocks, sand, {x, y + 1}) ->
+        simulate_sand(rocks, sand, max_y, {x, y + 1})
+
+      vacant?(rocks, sand, {x - 1, y + 1}) ->
+        simulate_sand(rocks, sand, max_y, {x - 1, y + 1})
+
+      vacant?(rocks, sand, {x + 1, y + 1}) ->
+        simulate_sand(rocks, sand, max_y, {x + 1, y + 1})
+
+      true ->
+        sand = Map.put(sand, position, true)
+        {:stable, sand}
+    end
+  end
+
+  defp vacant?(rocks, sand, position) do
+    not occupied?(rocks, sand, position)
+  end
+
+  defp occupied?(rocks, sand, position) do
+    cond do
+      rocks |> Map.has_key?(position) -> true
+      sand |> Map.has_key?(position) -> true
+      true -> false
+    end
+  end
+end
+
+rock_formation =
+  input
+  |> Enum.map(&Part1.parse_line/1)
+  |> Part1.create_rock_formation()
+
+max_y =
+  rock_formation
+  |> Enum.map(fn {{_x, y}, _value} -> y end)
+  |> Enum.max()
+
+rock_formation
+|> Part1.simulate(%{}, max_y, {500, 0})
+|> Enum.count()
+```
+
+### Result
+
+`755`
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Part 2
+
+Using your scan, simulate the falling sand until the source of the sand becomes blocked. How many units of sand come to rest?
+
+```elixir
+defmodule Part2 do
+  def simulate(rocks, sand, floor, sand_start) do
+    with true <- vacant?(rocks, sand, sand_start, floor),
+         {:stable, sand} <- simulate_sand(rocks, sand, floor, sand_start) do
+      simulate(rocks, sand, floor, sand_start)
+    else
+      _ -> sand
+    end
+  end
+
+  def simulate_sand(rocks, sand, floor, {x, y} = position) do
+    cond do
+      vacant?(rocks, sand, {x, y + 1}, floor) ->
+        simulate_sand(rocks, sand, floor, {x, y + 1})
+
+      vacant?(rocks, sand, {x - 1, y + 1}, floor) ->
+        simulate_sand(rocks, sand, floor, {x - 1, y + 1})
+
+      vacant?(rocks, sand, {x + 1, y + 1}, floor) ->
+        simulate_sand(rocks, sand, floor, {x + 1, y + 1})
+
+      true ->
+        sand = Map.put(sand, position, true)
+        {:stable, sand}
+    end
+  end
+
+  defp vacant?(rocks, sand, position, floor) do
+    not occupied?(rocks, sand, position, floor)
+  end
+
+  defp occupied?(rocks, sand, {_x, y} = position, floor) do
+    cond do
+      y >= floor -> true
+      rocks |> Map.has_key?(position) -> true
+      sand |> Map.has_key?(position) -> true
+      true -> false
+    end
+  end
+end
+
+rock_formation =
+  input
+  |> Enum.map(&Part1.parse_line/1)
+  |> Part1.create_rock_formation()
+
+floor =
+  rock_formation
+  |> Enum.map(fn {{_x, y}, _value} -> y end)
+  |> Enum.max()
+  |> Kernel.+(2)
+
+rock_formation
+|> Part2.simulate(%{}, floor, {500, 0})
+|> Enum.count()
+```
+
+### Result
+
+`29805`
