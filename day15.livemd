@@ -1,0 +1,237 @@
+# Advent of Code 2022 - Day 15
+
+## Day 15: Beacon Exclusion Zone
+
+[Description](https://adventofcode.com/2022/day/15)
+
+## Utils
+
+```elixir
+defmodule Load do
+  def file(path) do
+    File.read!(__DIR__ <> path) |> parse()
+  end
+
+  def string(value) do
+    value |> parse()
+  end
+
+  defp parse(value) do
+    value
+    |> String.split("\n", trim: true)
+  end
+end
+```
+
+## Input
+
+```elixir
+input = Load.file("/data/day15.txt")
+```
+
+## Part 1
+
+Consult the report from the sensors you just deployed. In the row where y=2000000, how many positions cannot contain a beacon?
+
+```elixir
+defmodule Part1 do
+  def parse(line) do
+    [s_x, s_y, _, _, _, _, b_x, b_y] =
+      line
+      |> String.split(" ")
+      |> Enum.slice(2..-1//1)
+
+    "x=" <> s_x = s_x
+    "y=" <> s_y = s_y
+    "x=" <> b_x = b_x
+    "y=" <> b_y = b_y
+
+    [s_x, s_y, b_x, b_y] =
+      [s_x, s_y, b_x, b_y]
+      |> Enum.map(fn s ->
+        s
+        |> String.trim(":")
+        |> String.trim(",")
+        |> String.to_integer()
+      end)
+
+    %{
+      s_x: s_x,
+      s_y: s_y,
+      b_x: b_x,
+      b_y: b_y,
+      distance: distance(s_x, s_y, b_x, b_y)
+    }
+  end
+
+  defp distance(x_1, y_1, x_2, y_2) do
+    abs(x_1 - x_2) + abs(y_1 - y_2)
+  end
+
+  def check_row(sensors, row) do
+    sensors
+    |> Enum.reduce([], fn sensor, ranges ->
+      dist_y = abs(row - sensor.s_y)
+      min_x = sensor.s_x - sensor.distance + dist_y
+      max_x = sensor.s_x + sensor.distance - dist_y
+
+      if min_x < max_x do
+        [{min_x, max_x} | ranges]
+      else
+        ranges
+      end
+    end)
+    |> Enum.sort(&(elem(&1, 0) < elem(&2, 0)))
+    |> merge_ranges([])
+    |> Enum.reduce(0, fn range, sum ->
+      {min, max} = range
+      # remove one for each beacon in the range
+      beacons =
+        sensors
+        |> Enum.uniq_by(fn %{b_x: b_x, b_y: b_y} ->
+          {b_x, b_y}
+        end)
+        |> Enum.reduce(0, fn %{b_y: b_y, b_x: b_x}, sum ->
+          with true <- b_y == row and b_x in min..max do
+            sum + 1
+          else
+            _ -> sum
+          end
+        end)
+
+      min..max
+      |> Enum.count()
+      |> Kernel.-(beacons)
+      |> Kernel.+(sum)
+    end)
+  end
+
+  def merge_ranges([], merged_ranges), do: merged_ranges
+  def merge_ranges([single_range], merged_ranges), do: [single_range | merged_ranges]
+
+  def merge_ranges(
+        [{current_min, current_max} = current_range, {next_min, next_max} = next_range | ranges],
+        merged_ranges
+      ) do
+    # if the next min value is lower or equal than the current max value, we merge them
+    case next_min <= current_max do
+      true ->
+        max_max = [current_max, next_max] |> Enum.max()
+        merge_ranges([{current_min, max_max} | ranges], merged_ranges)
+
+      false ->
+        merged_ranges = [current_range | merged_ranges]
+        merge_ranges([next_range | ranges], merged_ranges)
+    end
+  end
+end
+
+sensors =
+  input
+  |> Enum.map(&Part1.parse/1)
+
+sensors
+|> Part1.check_row(2_000_000)
+```
+
+### Result
+
+`5870800`
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Part 2
+
+Find the only possible position for the distress beacon. What is its tuning frequency?
+
+```elixir
+defmodule Part2 do
+  def check_row(sensors, row) do
+    sensors
+    |> Enum.reduce([], fn sensor, ranges ->
+      dist_y = abs(row - sensor.s_y)
+      min_x = sensor.s_x - sensor.distance + dist_y
+      max_x = sensor.s_x + sensor.distance - dist_y
+
+      if min_x < max_x do
+        [{min_x, max_x} | ranges]
+      else
+        ranges
+      end
+    end)
+    |> Enum.sort(&(elem(&1, 0) < elem(&2, 0)))
+    |> Part1.merge_ranges([])
+  end
+
+  def check_col(sensors, col) do
+    sensors
+    |> Enum.reduce([], fn sensor, ranges ->
+      dist_x = abs(col - sensor.s_x)
+      min_y = sensor.s_y - sensor.distance + dist_x
+      max_y = sensor.s_y + sensor.distance - dist_x
+
+      if min_y < max_y do
+        [{min_y, max_y} | ranges]
+      else
+        ranges
+      end
+    end)
+    |> Enum.sort(&(elem(&1, 0) < elem(&2, 0)))
+    |> Part1.merge_ranges([])
+  end
+end
+
+potential_x_ranges =
+  0..4_000_000
+  |> Enum.map(fn y ->
+    sensors |> Part2.check_row(y)
+  end)
+  |> Enum.reject(&(&1 |> Enum.count() <= 1))
+  |> Enum.map(fn ranges ->
+    ranges |> Enum.sort(&(elem(&1, 0) < elem(&2, 0)))
+  end)
+  |> Enum.map(fn ranges ->
+    [{_, min_x}, {max_x, _}] = ranges
+    {min_x, max_x}
+  end)
+  |> Enum.sort(&(elem(&1, 0) < elem(&2, 0)))
+  |> Part1.merge_ranges([])
+
+potential_y_ranges =
+  potential_x_ranges
+  |> Enum.flat_map(fn range ->
+    {min, max} = range
+
+    min..max
+    |> Enum.map(fn x ->
+      sensors |> Part2.check_col(x)
+    end)
+  end)
+  |> Enum.reject(&(&1 |> Enum.count() <= 1))
+  |> Enum.map(fn ranges ->
+    ranges |> Enum.sort(&(elem(&1, 0) < elem(&2, 0)))
+  end)
+  |> Enum.map(fn ranges ->
+    [{_, min_y}, {max_y, _}] = ranges
+    {min_y, max_y}
+  end)
+  |> Enum.sort(&(elem(&1, 0) < elem(&2, 0)))
+  |> Part1.merge_ranges([])
+
+[potential_x_ranges, potential_y_ranges]
+```
+
+### Manual calculation
+
+Probably need to rewrite this...
+
+```elixir
+range_y = {2_916_596, 2_916_598}
+range_x = {2_727_058, 2_727_056}
+
+(2_727_056 + 1) * 4_000_000 + (2_916_596 + 1)
+```
+
+### Result
+
+`10908230916597`
